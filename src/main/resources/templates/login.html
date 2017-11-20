@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>Login</title>
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width" />
+<base href="/" />
+<link rel="stylesheet" type="text/css" href="/webjars/bootstrap/css/bootstrap.min.css" />
+<script type="text/javascript" src="/webjars/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="/webjars/bootstrap/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="/webjars/font-awesome/css/font-awesome.min.css"></link>
+</head>
+
+<body>
+
+	<div class="container">
+		<h1>Login Using</h1>
+
+		<form action="/connect/google" method="POST" style="display: inline">
+			<input type="hidden" name="scope" value="profile email" />
+			<button type="submit" class="btn btn-danger">
+				Google <span class="fa fa-google-plus"></span>
+			</button>
+		</form>
+
+		<form action="/connect/facebook" method="POST" style="display: inline">
+			<input type="hidden" name="scope" value="public_profile,email" />
+			<button type="submit" class="btn btn-primary">
+				Facebook <span class="fa fa-facebook"></span>
+			</button>
+		</form>
+
+		<form action="/connect/linkedin" method="POST" style="display: inline">
+			<input type="hidden" name="scope"
+				value="r_basicprofile,r_emailaddress" />
+			<button type="submit" class="btn btn-primary">
+				LinkedIn <span class="fa fa-linkedin"></span>
+			</button>
+		</form>
+	</div>
+</body>
+</html>

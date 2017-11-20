@@ -1,0 +1,867 @@
+<h2>Part-1: Authorising user using Spring Social (Google, FaceBook and LinkedIn)</h2>
+<h3>Introduction</h3>
+Earlier I have written few blogs about Spring-social features where I had written about few problems like no support for Google, only one user allowed by spring-social etc and also few exceptions which occur and then how to fix them.
+
+I thought of collating all the problems and write a step by step tutorial explaining in detail, on how to register a user using spring social.
+
+The main aim of this tutorial will be to integrate spring-security and spring-social together and create a web application where users can be registered either by
+<ul>
+ 	<li>Registering their details</li>
+ 	<li>Google</li>
+ 	<li>Facebook</li>
+ 	<li>LinkedIn</li>
+</ul>
+In this first part of the tutorial, our aim will be to get data from spring-social and then display the details on the page, in the second part we will integrate the spring-security where we will ask the user to enter his details and then store on  DB.
+<h3>Step 1- Maven Dependencies</h3>
+Assuming that you know how to create a simple spring boot project, let us move on to add maven-dependencies required to run the project
+<h4>Adding Spring-Social dependencies</h4>
+The first step would be to add spring-social repos, following  dependencies are  required
+<pre class="lang:xhtml decode:true">		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-core&lt;/artifactId&gt;
+			&lt;version&gt;2.0.0.M2&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-config&lt;/artifactId&gt;
+			&lt;version&gt;2.0.0.M2&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-facebook&lt;/artifactId&gt;
+			&lt;version&gt;3.0.0.M1&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-linkedin&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-google&lt;/artifactId&gt;
+			&lt;version&gt;1.0.0.RELEASE&lt;/version&gt;
+		&lt;/dependency&gt;
+</pre>
+In case you get the repository not available error, you might have to add the following repository to your pom.
+<pre class="lang:xhtml decode:true">	&lt;repositories&gt;
+		&lt;repository&gt;
+			&lt;id&gt;alfresco-public&lt;/id&gt;
+			&lt;url&gt;https://artifacts.alfresco.com/nexus/content/groups/public&lt;/url&gt;
+		&lt;/repository&gt;
+	&lt;/repositories&gt;</pre>
+<h4>Adding Thymleaf, BootStrap, JQuery and Font-awesome dependencies</h4>
+To make our web pages look nice we will add some Bootstrap CSS, Font-awesome and Jquery to them and also we will use thymleaf for HTML. Read Here if you want to know more in detail.
+<pre class="lang:xhtml decode:true">		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-boot-starter-thymeleaf&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			 &lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			 &lt;artifactId&gt;jquery&lt;/artifactId&gt;
+			 &lt;version&gt;2.1.1&lt;/version&gt;
+		 &lt;/dependency&gt;
+		 &lt;dependency&gt;
+			 &lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			 &lt;artifactId&gt;bootstrap&lt;/artifactId&gt;
+			 &lt;version&gt;3.2.0&lt;/version&gt;
+		 &lt;/dependency&gt;
+		 &lt;dependency&gt;
+			 &lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			 &lt;artifactId&gt;webjars-locator&lt;/artifactId&gt;
+		 &lt;/dependency&gt;
+		 &lt;dependency&gt;
+			 &lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			 &lt;artifactId&gt;font-awesome&lt;/artifactId&gt;
+			 &lt;version&gt;4.7.0&lt;/version&gt;
+		 &lt;/dependency&gt;</pre>
+<h4>Complete POM</h4>
+To avoid any mistakes, here is the complete POM.xml
+<pre class="lang:xhtml decode:true ">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+	&lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+	&lt;groupId&gt;com.login&lt;/groupId&gt;
+	&lt;artifactId&gt;SpringLogin&lt;/artifactId&gt;
+	&lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+	&lt;packaging&gt;jar&lt;/packaging&gt;
+
+	&lt;name&gt;SpringLogin&lt;/name&gt;
+	&lt;description&gt;Spring Login - Example POC&lt;/description&gt;
+
+	&lt;parent&gt;
+		&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+		&lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+		&lt;version&gt;1.5.8.RELEASE&lt;/version&gt;
+		&lt;relativePath /&gt; &lt;!-- lookup parent from repository --&gt;
+	&lt;/parent&gt;
+
+	&lt;properties&gt;
+		&lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+		&lt;project.reporting.outputEncoding&gt;UTF-8&lt;/project.reporting.outputEncoding&gt;
+		&lt;java.version&gt;1.8&lt;/java.version&gt;
+	&lt;/properties&gt;
+
+	&lt;dependencies&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-boot-devtools&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-boot-starter-thymeleaf&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-core&lt;/artifactId&gt;
+			&lt;version&gt;2.0.0.M2&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-config&lt;/artifactId&gt;
+			&lt;version&gt;2.0.0.M2&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-facebook&lt;/artifactId&gt;
+			&lt;version&gt;3.0.0.M1&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-linkedin&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.social&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-social-google&lt;/artifactId&gt;
+			&lt;version&gt;1.0.0.RELEASE&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+			&lt;scope&gt;test&lt;/scope&gt;
+		&lt;/dependency&gt;
+		&lt;!-- &lt;dependency&gt; &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt; &lt;artifactId&gt;spring-boot-starter-security&lt;/artifactId&gt; 
+			&lt;/dependency&gt; --&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;cglib&lt;/groupId&gt;
+			&lt;artifactId&gt;cglib&lt;/artifactId&gt;
+			&lt;version&gt;3.1&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			&lt;artifactId&gt;jquery&lt;/artifactId&gt;
+			&lt;version&gt;2.1.1&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			&lt;artifactId&gt;bootstrap&lt;/artifactId&gt;
+			&lt;version&gt;3.2.0&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			&lt;artifactId&gt;webjars-locator&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.webjars&lt;/groupId&gt;
+			&lt;artifactId&gt;font-awesome&lt;/artifactId&gt;
+			&lt;version&gt;4.7.0&lt;/version&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+			&lt;artifactId&gt;spring-boot-starter-data-jpa&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.hsqldb&lt;/groupId&gt;
+			&lt;artifactId&gt;hsqldb&lt;/artifactId&gt;
+			&lt;scope&gt;runtime&lt;/scope&gt;
+		&lt;/dependency&gt;
+		&lt;dependency&gt;
+			&lt;groupId&gt;org.hibernate&lt;/groupId&gt;
+			&lt;artifactId&gt;hibernate-validator&lt;/artifactId&gt;
+		&lt;/dependency&gt;
+
+	&lt;/dependencies&gt;
+	&lt;repositories&gt;
+		&lt;repository&gt;
+			&lt;id&gt;alfresco-public&lt;/id&gt;
+			&lt;url&gt;https://artifacts.alfresco.com/nexus/content/groups/public&lt;/url&gt;
+		&lt;/repository&gt;
+	&lt;/repositories&gt;
+	&lt;build&gt;
+		&lt;plugins&gt;
+			&lt;plugin&gt;
+				&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+				&lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+			&lt;/plugin&gt;
+		&lt;/plugins&gt;
+	&lt;/build&gt;
+
+
+&lt;/project&gt;
+</pre>
+&nbsp;
+<h3>Step 2- Adding Login Page and Controller</h3>
+Once the dependencies have been resolved be will create a View and Controller
+<h4>Adding View</h4>
+To start we will create a view which will have 3 buttons each for Google, Facebook and Login. When the user will click on any of them he will be asked for authorization for the selected provider, upon verification his details will be rendered on the page.
+
+Create a file under src/main/resources/templates/login.html with the following content. Please note that this view has 3 different forms each for different provider
+<pre class="lang:xhtml decode:true">&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8" /&gt;
+&lt;meta http-equiv="X-UA-Compatible" content="IE=edge" /&gt;
+&lt;title&gt;Login&lt;/title&gt;
+&lt;meta name="description" content="" /&gt;
+&lt;meta name="viewport" content="width=device-width" /&gt;
+&lt;base href="/" /&gt;
+&lt;link rel="stylesheet" type="text/css" href="/webjars/bootstrap/css/bootstrap.min.css" /&gt;
+&lt;script type="text/javascript" src="/webjars/jquery/jquery.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="/webjars/bootstrap/js/bootstrap.min.js"&gt;&lt;/script&gt;
+&lt;link rel="stylesheet" href="/webjars/font-awesome/css/font-awesome.min.css"&gt;&lt;/link&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+
+	&lt;div class="container"&gt;
+		&lt;h1&gt;Login Using&lt;/h1&gt;
+
+		&lt;form action="/connect/google" method="POST" style="display: inline"&gt;
+			&lt;input type="hidden" name="scope" value="profile email" /&gt;
+			&lt;button type="submit" class="btn btn-danger"&gt;
+				Google &lt;span class="fa fa-google-plus"&gt;&lt;/span&gt;
+			&lt;/button&gt;
+		&lt;/form&gt;
+
+		&lt;form action="/connect/facebook" method="POST" style="display: inline"&gt;
+			&lt;input type="hidden" name="scope" value="public_profile,email" /&gt;
+			&lt;button type="submit" class="btn btn-primary"&gt;
+				Facebook &lt;span class="fa fa-facebook"&gt;&lt;/span&gt;
+			&lt;/button&gt;
+		&lt;/form&gt;
+
+		&lt;form action="/connect/linkedin" method="POST" style="display: inline"&gt;
+			&lt;input type="hidden" name="scope"
+				value="r_basicprofile,r_emailaddress" /&gt;
+			&lt;button type="submit" class="btn btn-primary"&gt;
+				LinkedIn &lt;span class="fa fa-linkedin"&gt;&lt;/span&gt;
+			&lt;/button&gt;
+		&lt;/form&gt;
+	&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+<h4>Adding Controller</h4>
+Let us create a controller class called LoginController with a simple method which will map the above page to URL / or /login
+<pre> 
+@Controller
+public class LoginController {
+
+@RequestMapping(value = { "/","/login" })
+	public String login() {
+		return "login";
+	}
+}	
+</pre>
+Now run the above application and at this point, a page like this should appear and of course, it won't do anything yet.
+
+<img class="aligncenter size-full wp-image-1175" src="http://littlebigextra.com/wp-content/uploads/2017/11/Login-1.jpg" alt="" width="357" height="130" />
+<h3>Step 3- Creating a POJO to show authorised user detail</h3>
+Once we verify the user via our social provider, we will show the user details on another page. We can store these details in a POJO called UserBean.
+Let us define a class called UserBean.java as shown below in package com.login.model
+<pre class="lang:java decode:true">package com.login.model;
+
+import java.beans.Transient;
+import java.io.Serializable;
+
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import org.hibernate.validator.constraints.Email;
+
+public class UserBean implements Serializable{
+	
+	private static final long serialVersionUID = 1L;
+	private String firstName;
+	private String lastName;
+	private String email;
+	private String title;
+	private String country;
+	private String password;
+	private String passwordConfirm;	
+	private String provider;
+	private String image;
+	
+	
+	public String getEmail() {
+		return email;
+	}
+
+	public String getImage() {
+	    return image;
+	}
+
+	public void setImage(String image) {
+	    this.image = image;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	
+	public String getPasswordConfirm() {
+		return passwordConfirm;
+	}
+
+	public void setPasswordConfirm(String passwordConfirm) {
+		this.passwordConfirm = passwordConfirm;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+	public void setCountry(String country) {
+		this.country = country;
+	}
+
+	public String getFirstName() {
+		return firstName;
+	}
+
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+
+	public String getLastName() {
+		return lastName;
+	}
+
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
+
+
+	public String getProvider() {
+		return provider;
+	}
+
+	public void setProvider(String provider) {
+		this.provider = provider;
+	}
+
+	 
+
+}
+
+</pre>
+<h3>Step 4 - Creating social Media Providers</h3>
+To start off with we will create a BaseProvider which will have a constructor where all the providers will be initialized. Also, note the scope of this provider has been kept
+@Request
+<pre class="lang:java decode:true">package com.login.social.providers;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.social.connect.ConnectionRepository;
+import org.springframework.social.facebook.api.Facebook;
+import org.springframework.social.google.api.Google;
+import org.springframework.social.linkedin.api.LinkedIn;
+
+@Configuration
+@Scope(value = "request",  proxyMode = ScopedProxyMode.TARGET_CLASS)
+public class BaseProvider {
+
+	private Facebook facebook;
+	private Google google;
+	private LinkedIn linkedIn;
+	private ConnectionRepository connectionRepository;
+	
+	public  BaseProvider(Facebook facebook,Google google,  LinkedIn linkedIn, ConnectionRepository connectionRepository) {
+		this.facebook = facebook;
+		this.connectionRepository = connectionRepository;
+		this.google=google; 
+		this.linkedIn= linkedIn;
+	}
+
+	public Facebook getFacebook() {
+		return facebook;
+	}
+
+	public void setFacebook(Facebook facebook) {
+		this.facebook = facebook;
+	}
+
+	public ConnectionRepository getConnectionRepository() {
+		return connectionRepository;
+	}
+
+	public void setConnectionRepository(ConnectionRepository connectionRepository) {
+		this.connectionRepository = connectionRepository;
+	}
+
+	public Google getGoogle() {
+		return google;
+	}
+
+	public void setGoogle(Google google) {
+		this.google = google;
+	}
+
+	public LinkedIn getLinkedIn() {
+		return linkedIn;
+	}
+
+	public void setLinkedIn(LinkedIn linkedIn) {
+		this.linkedIn = linkedIn;
+	}
+	
+	
+
+}
+</pre>
+Now let us create provider class for each provider
+<h4>Facebook Provider</h4>
+<pre class="lang:java decode:true">package com.login.social.providers;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.social.connect.ConnectionRepository;
+import org.springframework.social.facebook.api.Facebook;
+import org.springframework.social.facebook.api.User;
+import org.springframework.stereotype.Service;
+import org.springframework.ui.Model;
+
+import com.login.model.UserBean;
+
+
+@Service
+public class FacebookProvider  {
+
+	private static final String FACEBOOK = "facebook";
+	private static final String REDIRECT_LOGIN = "redirect:/login";
+
+    	@Autowired
+    	BaseProvider baseProvider ;
+    	
+
+	public String getFacebookUserData(Model model, UserBean userForm) {
+
+		ConnectionRepository connectionRepository = baseProvider.getConnectionRepository();
+		if (connectionRepository.findPrimaryConnection(Facebook.class) == null) {
+			return REDIRECT_LOGIN;
+		}
+		populateUserDetailsFromFacebook(userForm);
+		model.addAttribute("loggedInUser",userForm);
+		return "user";
+	}
+
+	protected void populateUserDetailsFromFacebook(UserBean userForm) {
+		Facebook facebook = baseProvider.getFacebook();
+		User user = facebook.userOperations().getUserProfile();
+		userForm.setEmail(user.getEmail());
+		userForm.setFirstName(user.getFirstName());
+		userForm.setLastName(user.getLastName());
+		userForm.setImage(user.getCover().getSource());
+		userForm.setProvider(FACEBOOK);
+	}
+
+	 
+
+}
+</pre>
+<h4>Google Provider</h4>
+<pre class="lang:java decode:true">package com.login.social.providers;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.social.connect.ConnectionRepository;
+import org.springframework.social.google.api.Google;
+import org.springframework.social.google.api.plus.Person;
+import org.springframework.stereotype.Service;
+import org.springframework.ui.Model;
+
+import com.login.model.UserBean;
+
+@Service
+public class GoogleProvider   {
+
+	private static final String REDIRECT_CONNECT_GOOGLE = "redirect:/login";
+	private static final String GOOGLE = "google";
+
+   	@Autowired
+    	BaseProvider socialLoginBean ;
+
+
+	public String getGoogleUserData(Model model, UserBean userForm) {
+
+		ConnectionRepository connectionRepository = socialLoginBean.getConnectionRepository();
+		if (connectionRepository.findPrimaryConnection(Google.class) == null) {
+			return REDIRECT_CONNECT_GOOGLE;
+		}
+
+		populateUserDetailsFromGoogle(userForm);
+		model.addAttribute("loggedInUser",userForm);
+		return "user";
+	}
+
+	
+	protected void populateUserDetailsFromGoogle(UserBean userform) {
+		Google google = socialLoginBean.getGoogle();
+		Person googleUser = google.plusOperations().getGoogleProfile();
+		userform.setEmail(googleUser.getAccountEmail());
+		userform.setFirstName(googleUser.getGivenName());
+		userform.setLastName(googleUser.getFamilyName());
+		userform.setImage(googleUser.getImageUrl());
+		userform.setProvider(GOOGLE);
+	}
+
+}
+</pre>
+<h4>LinkedIn Provider</h4>
+<pre class="lang:java decode:true">package com.login.social.providers;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.social.connect.ConnectionRepository;
+import org.springframework.social.linkedin.api.LinkedIn;
+import org.springframework.social.linkedin.api.LinkedInProfileFull;
+import org.springframework.stereotype.Service;
+import org.springframework.ui.Model;
+
+import com.login.model.UserBean;
+
+@Service
+public class LinkedInProvider  {
+
+	private static final String LINKED_IN = "linkedIn";
+	
+	private static final String REDIRECT_LOGIN = "redirect:/login";
+
+  	@Autowired
+    	BaseProvider socialLoginBean ;
+
+	public String getLinkedInUserData(Model model, UserBean userForm) {
+
+		ConnectionRepository connectionRepository = socialLoginBean.getConnectionRepository();
+		if (connectionRepository.findPrimaryConnection(LinkedIn.class) == null) {
+			return REDIRECT_LOGIN;
+		}
+		populateUserDetailsFromLinkedIn(userForm);
+		model.addAttribute("loggedInUser",userForm);
+		return "user";
+	}
+	
+	private void populateUserDetailsFromLinkedIn(UserBean userForm) {
+		LinkedIn linkedIn = socialLoginBean.getLinkedIn();
+		LinkedInProfileFull linkedInUser = linkedIn.profileOperations().getUserProfileFull();
+		userForm.setEmail(linkedInUser.getEmailAddress());
+		userForm.setFirstName(linkedInUser.getFirstName());
+		userForm.setLastName(linkedInUser.getLastName());
+		userForm.setImage(linkedInUser.getProfilePictureUrl());
+		userForm.setProvider(LINKED_IN);
+	}
+
+}
+</pre>
+<h3>Step 5 - Fixing some issues before we can run -Adding Google Support</h3>
+If you would have noticed by now, spring social doesnt support Google so to enable autoconfiguration of spring-social-google we need to
+
+&nbsp;
+<h4>Add a GoogleAutoConfiguration Class</h4>
+Do Ctrl+Shift+T in your IDE(eclipse) and look for FacebookAutoConfiguration class you should be able to find it either in org.springframework.boot.autoconfigure.social package in spring-autoconfigure.jar
+Copy this File and replace Facebook with Google. Alternatively, copy the below class and put in some package, make sure it is available in classpath(src/main/java or inside another source folder)
+<pre class="lang:java decode:true">package com.login.config.google;
+
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.autoconfigure.social.SocialAutoConfigurerAdapter;
+import org.springframework.boot.autoconfigure.social.SocialWebAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
+import org.springframework.social.config.annotation.EnableSocial;
+import org.springframework.social.config.annotation.SocialConfigurerAdapter;
+import org.springframework.social.connect.Connection;
+import org.springframework.social.connect.ConnectionFactory;
+import org.springframework.social.connect.ConnectionRepository;
+import org.springframework.social.connect.web.GenericConnectionStatusView;
+import org.springframework.social.google.api.Google;
+import org.springframework.social.google.connect.GoogleConnectionFactory;
+
+
+@Configuration
+@ConditionalOnClass({ SocialConfigurerAdapter.class, GoogleConnectionFactory.class })
+@ConditionalOnProperty(prefix = "spring.social.google", name = "app-id")
+@AutoConfigureBefore(SocialWebAutoConfiguration.class)
+@AutoConfigureAfter(WebMvcAutoConfiguration.class)
+public class GoogleAutoConfiguration {
+
+	@Configuration
+	@EnableSocial
+	@EnableConfigurationProperties(GoogleProperties.class)
+	@ConditionalOnWebApplication
+	protected static class GoogleConfigurerAdapter extends SocialAutoConfigurerAdapter {
+
+		private final GoogleProperties properties;
+
+		protected GoogleConfigurerAdapter(GoogleProperties properties) {
+			this.properties = properties;
+		}
+
+		@Bean
+		@ConditionalOnMissingBean(Google.class)
+		@Scope(value = "request", proxyMode = ScopedProxyMode.INTERFACES)
+		public Google google(ConnectionRepository repository) {
+			Connection&lt;Google&gt; connection = repository.findPrimaryConnection(Google.class);
+			return connection != null ? connection.getApi() : null;
+		}
+
+		@Bean(name = { "connect/googleConnect", "connect/googleConnected" })
+		@ConditionalOnProperty(prefix = "spring.social", name = "auto-connection-views")
+		public GenericConnectionStatusView googleConnectView() {
+			return new GenericConnectionStatusView("google", "Google");
+		}
+
+		@Override
+		protected ConnectionFactory&lt;?&gt; createConnectionFactory() {
+			return new GoogleConnectionFactory(this.properties.getAppId(), this.properties.getAppSecret());
+		}
+
+	}
+
+}</pre>
+&nbsp;
+<h4>Add GoogleProperties</h4>
+In the same package add the below class
+
+&nbsp;
+<pre class="lang:java decode:true ">package com.login.config.google;
+
+import org.springframework.boot.autoconfigure.social.SocialProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "spring.social.google")
+
+public class GoogleProperties extends SocialProperties{
+
+	
+}
+</pre>
+&nbsp;
+<h3>Step 6- Fixing some issues before we can run - Changing the default spring social redirect face flow</h3>
+Read here - about the whole issue here
+Lets add a Controller class called ChangeDefaultFlowController which will override the connectedView method.
+
+&nbsp;
+<pre class="lang:java decode:true ">package com.login.controller;
+
+import org.springframework.social.connect.ConnectionFactoryLocator;
+import org.springframework.social.connect.ConnectionRepository;
+import org.springframework.social.connect.web.ConnectController;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+
+@Controller
+@RequestMapping("/connect")
+public class ChangeDefaultFlowController extends ConnectController {
+
+	public ChangeDefaultFlowController(ConnectionFactoryLocator connectionFactoryLocator,
+			ConnectionRepository connectionRepository) {
+		super(connectionFactoryLocator, connectionRepository);
+	}
+	
+	@Override
+    protected String connectedView(String providerId) {
+        return "redirect:/"+providerId;
+    }
+
+}
+</pre>
+&nbsp;
+<h3>Step 7 - Fixing some issues before we can run - Allowing Multiple Users to Login</h3>
+Read Here In Detail --&gt;
+If you test the Spring Facebook example, accessing FB data you will realise that it only supports one user. So when the first users log in to facebook, only his details will be shared across all new sessions/users and they won’t be asked for any kind of authentication. One of the forum says that this example is supposed to demonstrate what can be done and is not intended for production use.
+To Fix this problem you need to override a method which always returns a string called "anonymous".The solution is to override the “anonymous” as the UserId for each new user/session. So for each session, we can simply return a SessionID, however, it may not be unique enough to identify users, especially if it’sh being cached or stored somewhere in a connection database.
+Using a Universally Unique Identifier(UUID) would be a safer bet.So we will store a new UUID in session so it persists between different requests but is alive only till the session is valid. See the below method which does the trick.
+<pre class="lang:java decode:true ">package com.login.identifier;
+
+import java.util.UUID;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.social.UserIdSource;
+import org.springframework.social.config.annotation.SocialConfigurerAdapter;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+
+
+@Configuration
+public class SessionIdentifier extends SocialConfigurerAdapter
+{
+
+    @Override
+    public UserIdSource getUserIdSource() {
+        return new SessionIdUserIdSource();
+    }
+
+    private static final class SessionIdUserIdSource implements UserIdSource {
+    	@Override
+        public String getUserId() {
+            RequestAttributes request = RequestContextHolder.currentRequestAttributes();
+            String uuid = (String) request.getAttribute("_socialUserUUID", RequestAttributes.SCOPE_SESSION);
+            if (uuid == null) {
+                uuid = UUID.randomUUID().toString();
+                request.setAttribute("_socialUserUUID", uuid, RequestAttributes.SCOPE_SESSION);
+            }
+            return uuid;
+        }
+    }
+}</pre>
+&nbsp;
+<h3>Step 8 - Updating the LoginController</h3>
+Now since we have added all the fixes, its time to update the controller so our view can submit the forms to Controller
+<pre class="lang:java decode:true ">package com.login.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.login.model.UserBean;
+import com.login.social.providers.FacebookProvider;
+import com.login.social.providers.GoogleProvider;
+import com.login.social.providers.LinkedInProvider;
+
+@Controller
+public class LoginController {
+
+	@Autowired 
+	FacebookProvider facebookProvider;
+	
+	@Autowired 
+	GoogleProvider googleProvider;
+
+	@Autowired 
+	LinkedInProvider linkedInProvider;
+
+	@RequestMapping(value = "/facebook", method = RequestMethod.GET)
+	public String loginToFacebook(Model model) {
+		return facebookProvider.getFacebookUserData(model, new UserBean());
+	}
+
+	@RequestMapping(value = "/google", method = RequestMethod.GET)
+	public String loginToGoogle(Model model) {
+		return googleProvider.getGoogleUserData(model, new UserBean());
+	}
+
+	@RequestMapping(value = "/linkedin", method = RequestMethod.GET)
+	public String helloFacebook(Model model) {
+		return linkedInProvider.getLinkedInUserData(model, new UserBean());
+	}
+	
+	@RequestMapping(value = { "/","/login" })
+	public String login() {
+		return "login";
+	}
+
+}
+
+</pre>
+
+<h3>Step 9 - Adding Spring properties</h3>
+Assuming that you know how to register the API and public/private keys on Google/FB and LinkedIn for this example purpose you can use the below properties file.
+Also, notice that server starts on port 3000(don't change that, since the URL registered with these keys is localhost:3000
+
+&nbsp;
+<pre class="lang:java decode:true ">spring.social.facebook.appId=384261248599251
+spring.social.facebook.appSecret=fd7fa1c5f5a267f463263a0ce7ff2025
+
+spring.social.linkedin.app-id=771mrzk94hye1w
+spring.social.linkedin.app-secret=iIJFgBf9lCb18zYe
+
+spring.social.google.appId=12894100090-tqso3lih5o42isneort886la2pesafmp.apps.googleusercontent.com
+spring.social.google.appSecret=9xfU16efvxQ-BTMsXT9wOLpw
+
+server.port:3000</pre>
+This is how the project structure will look like
+
+<img class="aligncenter size-full wp-image-1174" src="http://littlebigextra.com/wp-content/uploads/2017/11/Project-Structure-1.jpg" alt="" width="297" height="600" />
+
+<h3>Step 10 - User Details on page</h3>
+To show the authenticated user on page, we will display the UserBean using thymleaf.
+<pre>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>Login</title>
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width" />
+<meta name="ctx" th:content="${#httpServletRequest.getContextPath()}" />
+<base href="/" />
+<link rel="stylesheet" type="text/css" href="/webjars/bootstrap/css/bootstrap.min.css" />
+<script type="text/javascript" src="/webjars/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="/webjars/bootstrap/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="/webjars/font-awesome/css/font-awesome.min.css"></link>
+</head>
+<body>
+
+
+
+	<div class="container">
+		<br /><br /><br />
+		<form th:object="${loggedInUser}" method="post">
+			<div class="row">
+				<label for="username">Username:</label>
+				<span th:text="${loggedInUser.email}" />
+			</div>
+			<div class="row">
+				<label for="firstName">Name:</label>
+				 <span th:text="*{firstName}" /> <span th:text="*{lastName}" />
+			</div>
+			<div class="row">
+				<label for="image">Name:</label>
+				 <img th:attr="src=@{*{image}}" style="width: 150px; height: 150px;"/>
+			</div>
+
+		</form>
+		<br />
+		  <a href="/login" th:href="@{/login}" class="btn btn-info btn-lg">
+          <span class="glyphicon glyphicon-chevron-left"></span> Login using  other social Providers
+         </a>
+		 
+	</div>
+
+</body>
+</html></pre>
+
